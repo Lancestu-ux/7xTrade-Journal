@@ -193,6 +193,9 @@
         <select id="f-dir"><option>Long</option><option>Short</option></select>
       </div>
       <div class="form-group"><label>Contracts</label><input type="number" id="f-contracts" value="1" min="1"></div>
+      <div class="form-group"><label>Contract Type</label>
+        <select id="f-contract-type"><option value="NQ">NQ ($20/pt)</option><option value="MNQ">MNQ ($2/pt)</option></select>
+      </div>
       <div class="form-group"><label>Entry Price</label><input type="number" id="f-entry" step="0.25" placeholder="21450.25"></div>
       <div class="form-group"><label>Stop Loss</label><input type="number" id="f-sl" step="0.25" placeholder="21420.00"></div>
       <div class="form-group"><label>Target</label><input type="number" id="f-target" step="0.25" placeholder="21510.25"></div>
@@ -256,10 +259,10 @@
 
   function seedSamples() {
     trades = [
-      { id: 1, date: '2025-01-06', session: 'New York AM', setup: 'SMT Resweep', direction: 'Long', contracts: 2, entry: 21450.25, sl: 21420.00, target: 21510.25, exit: 21512.00, stopType: 'Body Low/High', rr: 2.1, points: 61.75, pnl: 2470, conf: 5, htf: true, smt: true, news: false, valid: true, narrative: 'Bullish', screenshot: '', notes: 'Clean SMT between NQ and ES at 4H FVG. London ran lows overnight.', mistakes: '', well: 'Waited for full confirmation before entry.', outcome: 'Win' },
-      { id: 2, date: '2025-01-06', session: 'New York AM', setup: 'Reversal Sequence', direction: 'Short', contracts: 1, entry: 21530.00, sl: 21555.00, target: 21470.00, exit: 21555.00, stopType: 'Swing Low/High', rr: -1.0, points: -25, pnl: -500, conf: 2, htf: true, smt: false, news: false, valid: false, narrative: 'Bearish', screenshot: '', notes: 'Took reversal without SMT confirmation. Only 2 confluence factors.', mistakes: 'Should have passed — not enough confluence. FOMO entry.', well: '', outcome: 'Loss' },
-      { id: 3, date: '2025-01-13', session: 'New York AM', setup: 'Soup Sequence', direction: 'Long', contracts: 2, entry: 21310.25, sl: 21290.00, target: 21370.25, exit: 21368.50, stopType: 'Swing Low/High', rr: 2.9, points: 58.25, pnl: 2330, conf: 4, htf: true, smt: false, news: false, valid: true, narrative: 'Bullish', screenshot: '', notes: 'Sweep of 15m low, rebalanced into 1m FVG, continuation to 4H target.', mistakes: '', well: 'Held to target despite drawdown mid-trade.', outcome: 'Win' },
-      { id: 4, date: '2025-01-27', session: 'New York AM', setup: 'Soup Sequence Failed', direction: 'Short', contracts: 1, entry: 21620.00, sl: 21645.00, target: 21560.00, exit: 21562.00, stopType: 'Body Low/High', rr: 2.3, points: 58, pnl: 1160, conf: 4, htf: true, smt: true, news: true, valid: true, narrative: 'Bearish', screenshot: '', notes: 'FOMC day. Failed soup setup into HTF FVG. Resweep confirmed.', mistakes: '', well: 'Read London session correctly pre-market.', outcome: 'Win' },
+      { id: 1, date: '2025-01-06', session: 'New York AM', setup: 'SMT Resweep', direction: 'Long', contracts: 2, contractType: 'NQ', entry: 21450.25, sl: 21420.00, target: 21510.25, exit: 21512.00, stopType: 'Body Low/High', rr: 2.1, points: 61.75, pnl: 2470, conf: 5, htf: true, smt: true, news: false, valid: true, narrative: 'Bullish', screenshot: '', notes: 'Clean SMT between NQ and ES at 4H FVG. London ran lows overnight.', mistakes: '', well: 'Waited for full confirmation before entry.', outcome: 'Win' },
+      { id: 2, date: '2025-01-06', session: 'New York AM', setup: 'Reversal Sequence', direction: 'Short', contracts: 1, contractType: 'NQ', entry: 21530.00, sl: 21555.00, target: 21470.00, exit: 21555.00, stopType: 'Swing Low/High', rr: -1.0, points: -25, pnl: -500, conf: 2, htf: true, smt: false, news: false, valid: false, narrative: 'Bearish', screenshot: '', notes: 'Took reversal without SMT confirmation. Only 2 confluence factors.', mistakes: 'Should have passed — not enough confluence. FOMO entry.', well: '', outcome: 'Loss' },
+      { id: 3, date: '2025-01-13', session: 'New York AM', setup: 'Soup Sequence', direction: 'Long', contracts: 2, contractType: 'NQ', entry: 21310.25, sl: 21290.00, target: 21370.25, exit: 21368.50, stopType: 'Swing Low/High', rr: 2.9, points: 58.25, pnl: 2330, conf: 4, htf: true, smt: false, news: false, valid: true, narrative: 'Bullish', screenshot: '', notes: 'Sweep of 15m low, rebalanced into 1m FVG, continuation to 4H target.', mistakes: '', well: 'Held to target despite drawdown mid-trade.', outcome: 'Win' },
+      { id: 4, date: '2025-01-27', session: 'New York AM', setup: 'Soup Sequence Failed', direction: 'Short', contracts: 1, contractType: 'NQ', entry: 21620.00, sl: 21645.00, target: 21560.00, exit: 21562.00, stopType: 'Body Low/High', rr: 2.3, points: 58, pnl: 1160, conf: 4, htf: true, smt: true, news: true, valid: true, narrative: 'Bearish', screenshot: '', notes: 'FOMC day. Failed soup setup into HTF FVG. Resweep confirmed.', mistakes: '', well: 'Read London session correctly pre-market.', outcome: 'Win' },
     ];
     save();
   }
@@ -366,7 +369,7 @@
         <td>${t.session}</td>
         <td><span class="setup-badge">${t.setup}</span></td>
         <td><span class="badge ${t.direction === 'Long' ? 'badge-long' : 'badge-short'}">${t.direction}</span></td>
-        <td>${t.contracts}</td>
+        <td>${t.contracts}${t.contractType ? ' ' + t.contractType : ''}</td>
         <td>${t.entry.toFixed(2)}</td>
         <td style="color:${t.points >= 0 ? '#22c55e' : '#ef4444'}">${t.points >= 0 ? '+' : ''}${t.points}</td>
         <td style="color:${t.pnl >= 0 ? '#22c55e' : '#ef4444'}">${t.pnl >= 0 ? '+' : '-'}$${Math.abs(t.pnl).toLocaleString()}</td>
@@ -474,7 +477,7 @@
         <div class="detail-grid">
           <div class="detail-item"><div class="detail-label">Session</div><div class="detail-val">${t.session}</div></div>
           <div class="detail-item"><div class="detail-label">Direction</div><div class="detail-val">${t.direction}</div></div>
-          <div class="detail-item"><div class="detail-label">Contracts</div><div class="detail-val">${t.contracts}</div></div>
+          <div class="detail-item"><div class="detail-label">Contracts</div><div class="detail-val">${t.contracts}${t.contractType ? ' ' + t.contractType : ''}</div></div>
           <div class="detail-item"><div class="detail-label">Stop Type</div><div class="detail-val">${t.stopType}</div></div>
           <div class="detail-item"><div class="detail-label">Entry</div><div class="detail-val">${t.entry.toFixed(2)}</div></div>
           <div class="detail-item"><div class="detail-label">Stop Loss</div><div class="detail-val">${t.sl.toFixed(2)}</div></div>
@@ -516,8 +519,10 @@
   function saveTrade() {
     const points = parseFloat(document.getElementById('f-points').value) || 0;
     const contracts = parseInt(document.getElementById('f-contracts').value) || 1;
+    const contractType = document.getElementById('f-contract-type').value;
+    const multiplier = contractType === 'MNQ' ? 2 : 20;
     const pnlInput = document.getElementById('f-pnl').value;
-    const pnl = pnlInput ? Math.round(parseFloat(pnlInput)) : Math.round(points * contracts * 20);
+    const pnl = pnlInput ? Math.round(parseFloat(pnlInput)) : Math.round(points * contracts * multiplier);
     const screenshotFile = document.getElementById('f-screenshot').files[0];
     let screenshot = '';
 
@@ -541,6 +546,7 @@
       setup: document.getElementById('f-setup').value,
       direction: document.getElementById('f-dir').value,
       contracts,
+      contractType,
       entry: parseFloat(document.getElementById('f-entry').value) || 0,
       sl: parseFloat(document.getElementById('f-sl').value) || 0,
       target: parseFloat(document.getElementById('f-target').value) || 0,
