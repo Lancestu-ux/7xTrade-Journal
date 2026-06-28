@@ -202,6 +202,7 @@
       </div>
       <div class="form-group"><label>R:R</label><input type="number" id="f-rr" step="0.1" placeholder="2.1"></div>
       <div class="form-group"><label>Points (neg for loss)</label><input type="number" id="f-points" step="0.25" placeholder="30"></div>
+      <div class="form-group"><label>P&L ($)</label><input type="number" id="f-pnl" step="1" placeholder="600"></div>
       <div class="form-group"><label>Confluence Score (1–5)</label><input type="number" id="f-conf" min="1" max="5" value="3"></div>
       <div class="form-group"><label>HTF Narrative</label>
         <select id="f-narrative"><option>Bullish</option><option>Bearish</option></select>
@@ -515,7 +516,8 @@
   function saveTrade() {
     const points = parseFloat(document.getElementById('f-points').value) || 0;
     const contracts = parseInt(document.getElementById('f-contracts').value) || 1;
-    const pnl = Math.round(points * contracts * 20);
+    const pnlInput = document.getElementById('f-pnl').value;
+    const pnl = pnlInput ? Math.round(parseFloat(pnlInput)) : Math.round(points * contracts * 20);
     const screenshotFile = document.getElementById('f-screenshot').files[0];
     let screenshot = '';
 
@@ -568,7 +570,7 @@
       showToast('Trade saved ✓');
 
       // reset fields
-      ['f-entry','f-sl','f-target','f-exit','f-rr','f-points','f-notes','f-mistakes','f-well'].forEach(id => {
+      ['f-entry','f-sl','f-target','f-exit','f-rr','f-points','f-pnl','f-notes','f-mistakes','f-well'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
