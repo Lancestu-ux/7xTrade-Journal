@@ -136,6 +136,16 @@
     .toast { position: fixed; bottom: 24px; right: 24px; background: #22d3ee; color: #0a0a0a; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 12px; opacity: 0; transition: opacity 0.2s; z-index: 200; pointer-events: none; }
     .toast.show { opacity: 1; }
 
+    /* Daily Notes */
+    .daily-notes-list { display: flex; flex-direction: column; gap: 12px; }
+    .daily-note { background: #111; border: 1px solid #1e1e1e; border-radius: 8px; padding: 16px; }
+    .daily-note-date { font-size: 14px; font-weight: 700; color: #22d3ee; margin-bottom: 8px; }
+    .daily-note-text { font-size: 12px; color: #94a3b8; line-height: 1.6; }
+    .daily-note-header { display: flex; justify-content: space-between; align-items: start; }
+
+    /* Equity Curve */
+    #equityChart { width: 100%; height: 400px; background: #111; border: 1px solid #1e1e1e; border-radius: 8px; }
+
     @media (max-width: 600px) {
       .stats-bar { gap: 12px; }
       .form-grid { grid-template-columns: 1fr; }
@@ -164,6 +174,8 @@
   <div class="nav">
     <button class="nav-btn active" onclick="showTab('log', this)">Trade Log</button>
     <button class="nav-btn" onclick="showTab('calendar', this)">Calendar</button>
+    <button class="nav-btn" onclick="showTab('daily', this)">Daily Notes</button>
+    <button class="nav-btn" onclick="showTab('equity', this)">Equity Curve</button>
   </div>
 
   <div class="content" id="mainContent"></div>
@@ -233,11 +245,28 @@
   </div>
 </div>
 
+<!-- Daily Notes Modal -->
+<div class="modal-overlay" id="dailyNoteModalOverlay">
+  <div class="modal">
+    <div class="modal-title">Add Daily Note</div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Date</label><input type="date" id="f-note-date"></div>
+      <div class="form-group full"><label>Notes</label><textarea id="f-note-text" placeholder="Market observations, lessons learned, etc..."></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="cancel-btn" onclick="closeDailyNoteModal()">Cancel</button>
+      <button class="save-btn" onclick="saveDailyNote()">Save Note</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
   const STORAGE_KEY = 'nq_journal_v1';
+  const NOTES_STORAGE_KEY = 'nq_journal_notes_v1';
   let trades = [];
+  let dailyNotes = [];
   let currentView = 'log';
   let calendarDate = new Date();
   let selectedTradeId = null;
@@ -248,6 +277,10 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       trades = raw ? JSON.parse(raw) : [];
     } catch(e) { trades = []; }
+    try {
+      const notesRaw = localStorage.getItem(NOTES_STORAGE_KEY);
+      dailyNotes = notesRaw ? JSON.parse(notesRaw) : [];
+    } catch(e) { dailyNotes = []; }
     if (trades.length === 0) seedSamples();
     renderStats();
     renderView();
@@ -255,6 +288,10 @@
 
   function save() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(trades)); } catch(e) {}
+  }
+
+  function saveDailyNotes() {
+    try { localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(dailyNotes)); } catch(e) {}
   }
 
   function seedSamples() {
@@ -310,7 +347,9 @@
 
   function renderView() {
     if (currentView === 'log') renderLog();
-    else renderCalendar();
+    else if (currentView === 'calendar') renderCalendar();
+    else if (currentView === 'daily') renderDailyNotes();
+    else if (currentView === 'equity') renderEquityCurve();
   }
 
   // ── Trade Log ─────────────────────────────────────────────
@@ -502,6 +541,160 @@
     `;
   }
 
+  // ── Daily Notes ───────────────────────────────────────────
+  function renderDailyNotes() {
+    const content = document.getElementById('mainContent');
+    content.innerHTML = `
+      <div class="section-header">
+        <div class="section-title">Daily Notes</div>
+      </div>
+      <button class="add-btn" onclick="openDailyNoteModal()">+ Add Note</button>
+      <div id="notesContainer" style="margin-top: 20px;"></div>
+    `;
+    renderDailyNotesList();
+  }
+
+  function renderDailyNotesList() {
+    const container = document.getElementById('notesContainer');
+    if (!dailyNotes.length) {
+      container.innerHTML = '<div class="empty"><div class="empty-icon">📝</div><div class="empty-text">No daily notes yet.</div></div>';
+      return;
+    }
+    const sorted = [...dailyNotes].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const html = sorted.map(note => `
+      <div class="daily-note">
+        <div class="daily-note-header">
+          <div class="daily-note-date">${note.date}</div>
+          <button class="del-btn" onclick="deleteDailyNote('${note.id}')">✕</button>
+        </div>
+        <div class="daily-note-text">${note.text.replace(/\n/g, '<br>')}</div>
+      </div>
+    `).join('');
+    container.innerHTML = html;
+  }
+
+  function openDailyNoteModal() {
+    document.getElementById('f-note-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('f-note-text').value = '';
+    document.getElementById('dailyNoteModalOverlay').classList.add('open');
+  }
+
+  function closeDailyNoteModal() {
+    document.getElementById('dailyNoteModalOverlay').classList.remove('open');
+  }
+
+  function saveDailyNote() {
+    const date = document.getElementById('f-note-date').value;
+    const text = document.getElementById('f-note-text').value;
+    if (!text.trim()) { showToast('Please enter a note'); return; }
+    dailyNotes.unshift({ id: Date.now().toString(), date, text });
+    saveDailyNotes();
+    closeDailyNoteModal();
+    renderDailyNotes();
+    showToast('Note saved ✓');
+  }
+
+  function deleteDailyNote(id) {
+    if (!confirm('Delete this note?')) return;
+    dailyNotes = dailyNotes.filter(n => n.id !== id);
+    saveDailyNotes();
+    renderDailyNotes();
+    showToast('Note deleted');
+  }
+
+  // ── Equity Curve ──────────────────────────────────────────
+  function renderEquityCurve() {
+    const content = document.getElementById('mainContent');
+    content.innerHTML = `
+      <div class="section-header">
+        <div class="section-title">Equity Curve</div>
+      </div>
+      <canvas id="equityChart"></canvas>
+    `;
+    drawEquityCurve();
+  }
+
+  function drawEquityCurve() {
+    const sorted = [...trades].sort((a, b) => new Date(a.date) - new Date(b.date));
+    let cumulative = 0;
+    const data = sorted.map(t => {
+      cumulative += (t.pnl || 0);
+      return { date: t.date, pnl: cumulative };
+    });
+
+    const canvas = document.getElementById('equityChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const padding = 40;
+    const graphWidth = width - padding * 2;
+    const graphHeight = height - padding * 2;
+
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, width, height);
+
+    if (!data.length) {
+      ctx.fillStyle = '#64748b';
+      ctx.font = '14px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillText('No trades yet', width / 2, height / 2);
+      return;
+    }
+
+    const minPnl = Math.min(...data.map(d => d.pnl), 0);
+    const maxPnl = Math.max(...data.map(d => d.pnl), 0);
+    const range = maxPnl - minPnl || 1;
+    const zeroY = padding + graphHeight * (maxPnl / range);
+
+    // Draw grid lines
+    ctx.strokeStyle = '#1e1e1e';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 5; i++) {
+      const y = padding + (i * graphHeight) / 5;
+      ctx.beginPath();
+      ctx.moveTo(padding, y);
+      ctx.lineTo(width - padding, y);
+      ctx.stroke();
+    }
+
+    // Draw axis labels
+    ctx.fillStyle = '#64748b';
+    ctx.font = '11px Inter';
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= 5; i++) {
+      const val = maxPnl - (i * range) / 5;
+      const y = padding + (i * graphHeight) / 5;
+      ctx.fillText('$' + Math.round(val).toLocaleString(), padding - 10, y + 4);
+    }
+
+    // Draw curve
+    ctx.strokeStyle = '#22d3ee';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    data.forEach((d, i) => {
+      const x = padding + (i / (data.length - 1 || 1)) * graphWidth;
+      const y = zeroY - ((d.pnl - minPnl) / range) * graphHeight;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Draw points
+    data.forEach((d, i) => {
+      const x = padding + (i / (data.length - 1 || 1)) * graphWidth;
+      const y = zeroY - ((d.pnl - minPnl) / range) * graphHeight;
+      ctx.fillStyle = d.pnl >= 0 ? '#22c55e' : '#ef4444';
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
   // ── Modal ─────────────────────────────────────────────────
   function openModal() {
     document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
@@ -514,6 +707,10 @@
 
   document.getElementById('modalOverlay').addEventListener('click', function(e) {
     if (e.target === this) closeModal();
+  });
+
+  document.getElementById('dailyNoteModalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeDailyNoteModal();
   });
 
   function saveTrade() {
